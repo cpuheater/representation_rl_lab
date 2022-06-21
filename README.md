@@ -1,7 +1,7 @@
 # Applying representation learning to reinforcement learning 
-Using denoising autoencoder to learn compact representations and using it to train rl agent.
+Using denoising autoencoder to learn compact representations and using it to train RL agent.
 
-## Collect data while plying Doom
+## Collect data while playing Doom
 ```bash
 python play_and_collect.py --image-dir=images
 ```
