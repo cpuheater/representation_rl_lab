@@ -231,7 +231,6 @@ for global_step in range(args.total_timesteps):
         obs = torch.from_numpy(obs).float().to(device)
         recon, obs_latent = ae.forward(obs.unsqueeze(0))
         recon_loss = ae.calc_loss(recon, obs / 255.0)
-        print(recon_loss)
 
         cv2.imshow("Image", (obs / 255.0).permute(1, 2, 0).cpu().numpy()[:, :, ::-1])
         cv2.imshow("Reconstruction", recon.squeeze(0).permute(1, 2, 0).detach().cpu().numpy())

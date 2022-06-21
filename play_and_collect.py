@@ -7,14 +7,12 @@ from argparse import ArgumentParser
 import os
 from time import sleep
 import vizdoom as vzd
-import matplotlib.pyplot as plt
+
 parser = argparse.ArgumentParser(description='play and collect data')
 parser.add_argument('--image-dir', default='images', help='')
 
 args = parser.parse_args(args=[])
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-#DEFAULT_CONFIG = os.path.join(vzd.scenarios_path, "deathmatch.cfg")
 
 
 if __name__ == '__main__':
@@ -50,14 +48,13 @@ if __name__ == '__main__':
             cv2.waitKey(1)
             img = cv2.resize(img, (80, 60), interpolation = cv2.INTER_AREA)
             cv2.imwrite(path, img)
-            print("State #" + str(state.number))
+            print("State " + str(state.number))
             print("Game variables: ", state.game_variables)
             print("Action:", last_action)
             print("Reward:", reward)
             print("=====================")
             frame += 1
 
-        print("Episode finished!")
         print("Total reward:", game.get_total_reward())
         sleep(2.0)
 

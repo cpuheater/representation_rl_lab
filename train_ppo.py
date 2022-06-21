@@ -313,7 +313,6 @@ for update in range(1, num_updates+1):
         with torch.no_grad():
             recon, z = ae.forward(obs[step])
             recon_loss = ae.calc_loss(recon[0], obs[step][0] / 255.0)
-            print(recon_loss)
 
             cv2.imshow("Image", (obs[step][0] / 255.0).permute(1, 2, 0).cpu().numpy()[:, :, ::-1])
             cv2.imshow("Reconstruction", recon[0].permute(1, 2, 0).detach().cpu().numpy())

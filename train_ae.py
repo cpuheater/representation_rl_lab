@@ -31,7 +31,7 @@ num_channels = 3
 
 transform = A.Compose(
     [
-        A.Rotate(limit=10, p=0.2, border_mode=cv2.BORDER_CONSTANT),
+        #A.Rotate(limit=10, p=0.2, border_mode=cv2.BORDER_CONSTANT),
         A.RandomShadow(num_shadows_lower=1, num_shadows_upper=1, shadow_dimension=5, shadow_roi=(0, 0.5, 1, 1), p=0.4),
         A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.9),
         A.OneOf([
