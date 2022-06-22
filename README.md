@@ -1,5 +1,5 @@
 # Applying representation learning to reinforcement learning 
-Using denoising autoencoder to learn compact representations and using it to train RL agent.
+Using denoising autoencoder to learn compress representations for the purpose of using it to train RL agent.
 
 ## Collect data while playing Doom
 ```bash
