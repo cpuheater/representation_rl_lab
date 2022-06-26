@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import torch
 from datetime import datetime
-from src.autoencoders import Autoencoder
+from src.autoencoders import Autoencoder, VAE
 from src.dataset import DoomImageDataset
 import cv2
 from torch.utils.tensorboard import SummaryWriter
@@ -29,22 +29,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 width, height = 80, 60
 num_channels = 3
 
-transform = A.Compose(
-    [
-        #A.Rotate(limit=10, p=0.2, border_mode=cv2.BORDER_CONSTANT),
-        A.RandomShadow(num_shadows_lower=1, num_shadows_upper=1, shadow_dimension=5, shadow_roi=(0, 0.5, 1, 1), p=0.4),
-        A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.9),
-        A.OneOf([
-            A.Blur(blur_limit=3, p=0.5),
-            A.ColorJitter(p=0.5),
-        ], p=1.0),
-        ToTensorV2(),
-    ]
-)
-
-dataset = DoomImageDataset(args.images_dir, transform=transform)
-
-data_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 exp_name = f'batch_size={args.batch_size}_epoch={args.epochs}_latent_dim={args.latent_dim}_{datetime.now().strftime("%m-%d-%Y_%H:%M:%S")}_{args.model_type}'
 
 
@@ -70,7 +54,7 @@ def train_model(epoch, model, optimizer, data_loader, clip_grad_norm=None):
         aug_image = aug_image.to(device)
         img = img.to(device)
         optimizer.zero_grad()
-        reconstruction, _ = model.forward(aug_image)
+        reconstruction = model.forward(aug_image)
         img = img / 255.0
         loss = model.calc_loss(reconstruction, img)
         loss.backward()
@@ -87,7 +71,7 @@ def train_model(epoch, model, optimizer, data_loader, clip_grad_norm=None):
         recon = model.get_reconstruction(imgs[0].to(device).unsqueeze(0))
         cv2.imshow("Image", imgs[0].permute(1, 2, 0).cpu().numpy())
         cv2.imshow("Augmentation", aug_image[0].permute(1, 2, 0).cpu().numpy())
-        cv2.imshow("Reconstruction", recon[0].cpu().numpy())
+        cv2.imshow("Reconstruction", recon[0].cpu().detach().numpy())
         cv2.waitKey(1)
     return
 
@@ -110,6 +94,20 @@ def plot(model, data_loader):
 
 
 def main():
+    transform = A.Compose(
+        [
+            A.RandomShadow(num_shadows_lower=1, num_shadows_upper=1, shadow_dimension=5, shadow_roi=(0, 0.5, 1, 1), p=0.4),
+            A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.9),
+            A.OneOf([
+                A.Blur(blur_limit=3, p=0.5),
+                A.ColorJitter(p=0.5),
+            ], p=1.0),
+            ToTensorV2(),
+        ]
+    )
+
+    dataset = DoomImageDataset(args.images_dir, transform=transform)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     model = create_model()
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
     print(f"DataSet size: {len(dataset)}")
