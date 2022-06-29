@@ -65,8 +65,8 @@ class Autoencoder(nn.Module):
         x_no_grad = x.detach()
         return x_no_grad
 
-    def calc_loss(self, reconstruction: torch.Tensor, img: torch.Tensor) -> torch.Tensor:
-        return F.mse_loss(reconstruction, img)
+    def calc_loss(self, recon: torch.Tensor, img: torch.Tensor) -> torch.Tensor:
+        return F.mse_loss(recon[0], img)
 
 
 class VAE(nn.Module):
@@ -130,7 +130,7 @@ class VAE(nn.Module):
         return sample
 
 
-    def get_reconstruction(self, x: torch.Tensor) -> torch.Tensor:
+    def get_reconstruction(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             z = self._encoder(x)[0]
             x = self._decoder(z)
@@ -138,30 +138,27 @@ class VAE(nn.Module):
         x = (255 * torch.clip(x, 0, 1)).to(torch.uint8).squeeze(0)
         return x, z
 
-    def _encoder(self, x):
+    def _encoder(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         x = x / 255.0
         x = self.encoder(x)
         mu, log_var = self.fc_mu(x), self.fc_log_var(x)
         z = self.reparameterize(mu, log_var)
         return z, mu, log_var
 
-    def _decoder(self, z):
+    def _decoder(self, z: torch.Tensor) -> torch.Tensor:
         z = self.fc(z)
         z = z.view(-1, 3840, 1, 1)
-        reconstruction = self.decoder(z)
-        return reconstruction
+        recon = self.decoder(z)
+        return recon
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         z, mu, log_var = self._encoder(x)
-        reconstruction = self._decoder(z)
-        return reconstruction, mu, log_var
+        recon = self._decoder(z)
+        return recon, mu, log_var
 
 
     def calc_loss(self, recon, x) -> torch.Tensor:
         recon_x, mean, log_var = recon
-        reconstruction_loss = nn.functional.binary_cross_entropy(recon_x, x, size_average=False)
+        recon_loss = nn.functional.binary_cross_entropy(recon_x, x, size_average=False)
         KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
-        return reconstruction_loss + KLD
-
-
-        #return F.mse_loss(reconstruction, img)
+        return recon_loss + KLD
