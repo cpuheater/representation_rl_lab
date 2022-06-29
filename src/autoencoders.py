@@ -109,6 +109,7 @@ class VAE(nn.Module):
             nn.BatchNorm2d(32),
             nn.LeakyReLU(negative_slope=0.2),
             nn.ConvTranspose2d(32, 3, (2, 2), stride=2, padding=1),
+            nn.Sigmoid()
         )
 
 
@@ -130,27 +131,37 @@ class VAE(nn.Module):
 
 
     def get_reconstruction(self, x: torch.Tensor) -> torch.Tensor:
-        return self.forward(x)[0]
+        with torch.no_grad():
+            z = self._encoder(x)[0]
+            x = self._decoder(z)
+        x = x.permute((0, 2, 3, 1))
+        x = (255 * torch.clip(x, 0, 1)).to(torch.uint8).squeeze(0)
+        return x, z
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _encoder(self, x):
         x = x / 255.0
         x = self.encoder(x)
         mu, log_var = self.fc_mu(x), self.fc_log_var(x)
-
         z = self.reparameterize(mu, log_var)
+        return z, mu, log_var
+
+    def _decoder(self, z):
         z = self.fc(z)
         z = z.view(-1, 3840, 1, 1)
+        reconstruction = self.decoder(z)
+        return reconstruction
 
-        x = self.decoder(z)
-        reconstruction = torch.sigmoid(x)
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        z, mu, log_var = self._encoder(x)
+        reconstruction = self._decoder(z)
         return reconstruction, mu, log_var
 
 
     def calc_loss(self, recon, x) -> torch.Tensor:
-        x_hat, mean, log_var = recon
-        reproduction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction='sum')
+        recon_x, mean, log_var = recon
+        reconstruction_loss = nn.functional.binary_cross_entropy(recon_x, x, size_average=False)
         KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
-        return reproduction_loss + KLD
+        return reconstruction_loss + KLD
 
 
         #return F.mse_loss(reconstruction, img)

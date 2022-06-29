@@ -10,6 +10,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import Dataset
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import time
+import math
+
 
 parser = argparse.ArgumentParser(description='train vea or ae')
 parser.add_argument('--batch-size', type=int, default=8)
@@ -39,6 +42,12 @@ writer.add_text('hyperparameters', "|param|value|\n|-|-|\n%s" % (
 def save_model(model):
     torch.save(model.state_dict(),
                os.path.join(args.model_dir, f'{exp_name}.pt'))
+
+def time_since(since):
+    s = time.time() - since
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
 
 def create_model():
     if args.model_type == "VAE":
@@ -94,6 +103,7 @@ def plot(model, data_loader):
 
 
 def main():
+    start = time.time()
     transform = A.Compose(
         [
             A.RandomShadow(num_shadows_lower=1, num_shadows_upper=1, shadow_dimension=5, shadow_roi=(0, 0.5, 1, 1), p=0.4),
@@ -113,6 +123,7 @@ def main():
     print(f"DataSet size: {len(dataset)}")
     for epoch in range(args.epochs):
         train_model(epoch, model, optimizer, data_loader, args.grad_clipping)
+    print(f"Time: {time_since(start)}")
     plot(model, data_loader)
     save_model(model)
 
